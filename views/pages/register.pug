@@ -1,0 +1,21 @@
+html
+  head
+    title COMP2406A4 - Register
+  body
+    div#header
+      h1 Restaurant Web App
+      h3 #[a(href="/") Home] #[a(href="/users") Users] #[a(href="/register") Register]
+
+    h1 welcome to the registration page!
+    p please provide us with your unique username and password
+    br
+    form(method='POST', action='http://localhost:3000/register')
+
+      label(for='name')
+        p Enter a Username:
+        input#name(type= 'text', name= 'name')
+      label(for='password')
+        p Enter a Password:
+        input#password(type= 'text', name= 'password')
+
+      input(type='submit', value='Register')

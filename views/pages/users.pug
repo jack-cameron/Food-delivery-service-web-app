@@ -1,0 +1,11 @@
+html
+  head
+    title COMP2406A4 - Users
+  body
+    include ../partials/header
+    h3 here is a list of all public users:
+    br
+    each val in userList
+      if !val.privacy
+        a(href=`/users/${val._id}`) #{val.username}
+        br

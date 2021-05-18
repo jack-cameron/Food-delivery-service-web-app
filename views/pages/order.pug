@@ -1,0 +1,17 @@
+html
+  head
+    title COMP2406A4 - Order
+  body
+    include ../partials/header
+    h3 #{order._id}
+    p restaurant name: #{order.restaurantName}
+    p order placed by: #{order.person}
+    br
+    p  order contents:
+    each val in order.order
+      p #{val.name} x(#{val.quantity})
+    br
+    p subtotal: #{order.subtotal}
+    p tax: #{order.tax}
+    p delivery fee: #{order.fee}
+    p total: #{order.total}

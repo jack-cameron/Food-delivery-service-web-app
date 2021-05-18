@@ -1,0 +1,28 @@
+html
+  head
+    title COMP2406A4 - #{profile.username}
+  body
+    include ../partials/header
+    h1 #{profile.username}
+    br
+    if profile.username == user.username && user.loggedin
+      if profile.privacy
+        p private mode is currently on
+      if !profile.privacy
+        p private mode is currently off
+      p private mode:
+      form(method='POST', action=`http://localhost:3000/users/${user.user._id}`)
+        input#on(type='radio', name='privacy', value='on')
+        |  On
+        input#off(type='radio', name='privacy', value='off')
+        |  Off
+        br
+        input(type='submit', value= 'Save')
+    if profile.order
+      h3 order history:
+        br
+        each val in profile.order
+          a(href=`/orders/${val._id}`) #{val._id}
+          br
+    else
+      h3 no order history at this time
