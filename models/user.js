@@ -4,27 +4,21 @@ const Schema = mongoose.Schema;
 const userSchema = new Schema({
   username: {
     type: String,
-    required: true,
+    required: true
   },
-  password: {
+  password : {
     type: String,
-    required: true,
+    required: true
   },
-  privacy: {
+  privacy : {
     type: Boolean,
-    required: true,
+    required: true
   },
-  order: [
-    {
-      type: Schema.Types.ObjectId,
-      ref: "Order",
-      required: false,
-    },
-  ],
-  user_type: {
-    type: String,
-    enum: ["user", "driver"],
-  },
+  order :  [{
+    type: Schema.Types.ObjectId,
+    ref: 'Order',
+    required: false,
+  }]
 });
 
-module.exports = User = mongoose.model("user", userSchema);
+module.exports = User = mongoose.model('user', userSchema);
