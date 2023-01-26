@@ -10,6 +10,11 @@ const orderSchema = new Schema({
     type: String,
     required: true
   },
+  status: {
+    type: String,
+    enum: ["PENDING", "DELIVERED", "IN_PROGRESS"],
+    default: "PENDING"
+  },
   restaurantName: {
     type: String,
     required: true

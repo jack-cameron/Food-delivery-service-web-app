@@ -3,11 +3,17 @@ html
     title COMP2406A4 - Home
   body
     include ../partials/header
-
-    h2 welcome!
-    |
-    p click users restaurants to browse registered users
-    |
-    p click register to register a profile to the website
-    |
-    p click home to return to this page
+    if !isDriver
+      h2 welcome!
+      |
+      p click users restaurants to browse registered users
+      |
+      p click register to register a profile to the website
+      |
+      p click home to return to this page
+    else
+      h2 All pending orders
+      |
+      each order in orders 
+        a(href=`/orders?order_id=${order._id}`) #{order._id} by #{order.person}
+        br

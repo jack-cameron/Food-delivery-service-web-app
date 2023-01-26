@@ -22,7 +22,7 @@ html
       h3 order history:
         br
         each val in profile.order
-          a(href=`/orders/${val._id}`) #{val._id}
+          a(href=`/orders?order_id=${val._id}`) #{val._id}
           br
     else
       h3 no order history at this time

@@ -14,6 +14,14 @@ const userSchema = new Schema({
     type: Boolean,
     required: true,
   },
+  userLastCoordinatesLongitude: {
+    type: String,
+    required: false,
+  },
+  userLastCoordinatesLatitude: {
+    type: String,
+    required: false,
+  },
   order: [
     {
       type: Schema.Types.ObjectId,

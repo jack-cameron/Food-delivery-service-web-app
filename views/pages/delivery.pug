@@ -1,0 +1,29 @@
+//- html
+//-   head
+//-     title COMP2406A4 - Order
+//-     style.
+//-       #btn-process, #btn-process-delivery {
+//-         cursor: pointer;
+//-       }
+//-   body
+//-     include ../partials/header
+//-     h3 Order Id: - #{order._id}
+//-     h3 Restaurant name: #{order.restaurantName}
+//-     h3 Order placed by: #{order.person}
+//-     h3  Order contents:
+//-     each val in order.order
+//-       p #{val.name} x(#{val.quantity})
+//-     p Subtotal: #{order.subtotal}
+//-     p Tax: #{order.tax}
+//-     p Delivery fee: #{order.fee}
+//-     p Total: #{order.total}
+//-     |
+//-     |
+//-     if !isDriver
+//-       button#btn-process(type='button') Process order
+//-     else 
+//-       button#btn-process-delivery(type='button') Process for delivery
+//-     script(src="https://cdn.socket.io/4.5.4/socket.io.min.js")
+//-     script(src='orderProcessor.js' defer type="text/javascript")
+
+//- We are to insert the map here

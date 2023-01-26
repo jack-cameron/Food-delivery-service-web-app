@@ -36,6 +36,7 @@ function registerClient(req, res, next) {
   let user = new User();
   user.username = req.body.name;
   user.password = req.body.password;
+  user.user_type = req.body.user_type;
   user.privacy = false;
   console.log(user);
   user.save((err, result) => {
