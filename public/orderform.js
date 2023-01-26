@@ -18,6 +18,7 @@ function submitOrder(){
 	req.onreadystatechange = function() {
 		if(this.readyState==4 && this.status==200){
 			alert("Order placed!")
+			// supposed to send emit here
 			console.log(this.responseText);
 			order = {}
 			selectRestaurant();

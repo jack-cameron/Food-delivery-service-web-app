@@ -21,14 +21,16 @@ let User = require("./models/user");
 let Order = require("./models/order");
 
 router.post("/", createOrders);
-router.get("/:id", loadOrders);
+router.get("/", loadOrders);
+router.get("/:id/deliveryInfo", loadOrderDeliveryInfo);
+
 
 /*extracts order object from XML post request from the client-side
   and creates a new Order object to add to the database*/
 function createOrders(req, res, next) {
   let count = 0;
   let u = {};
-  User.findOne({ username: 'GreenTea' }, (err, result) => {
+  User.findOne({ username: req.session.username }, (err, result) => {
     if (err) throw err;
     if (!result) {
       return res.status(404).send("<h1>Error 404: user does not exist</h1>");
@@ -41,7 +43,7 @@ function createOrders(req, res, next) {
     order.total = req.body.total;
     order.fee = req.body.fee;
     order.tax = req.body.tax;
-    order.person = 'GreenTea';
+    order.person = req.session.username;
     for (key in req.body.order) {
       let item = {};
       item.quantity = req.body.order[key].quantity;
@@ -55,7 +57,7 @@ function createOrders(req, res, next) {
     result.order.push(order);
     result.save((err, result) => {
       if (err) throw err;
-      res.send();
+      res.send({ message: result });
     });
   });
 }
@@ -64,7 +66,8 @@ function createOrders(req, res, next) {
 function loadOrders(req, res, next) {
   let order;
   let user = req.session;
-  Order.findOne({ _id: req.params.id }, (err, result) => {
+  const isDriver = (user.user_type === "driver") ? true : false;
+  Order.findOne({ _id: req.query.order_id }, (err, result) => {
     if (err) throw err;
     let order = result;
     User.findOne({ username: order.person }, (err, result) => {
@@ -73,7 +76,7 @@ function loadOrders(req, res, next) {
         attempting be accesed by another user, or someone who
         isn't logged in*/
       if (
-        (result.privacy == true && 'GreenTea' !== result.username) ||
+        (result.privacy == true && req.session.username !== result.username) ||
         (result.privacy == true && !req.session.loggedin)
       ) {
         return res
@@ -83,6 +86,37 @@ function loadOrders(req, res, next) {
         res.render("./pages/order", {
           user: user,
           order: order,
+          isDriver
+        });
+      }
+    });
+  });
+}
+
+function loadOrderDeliveryInfo(req, res, next) {
+  let order;
+  let user = req.session;
+  const isDriver = (user.user_type === "driver") ? true : false;
+  Order.findOne({ _id: req.params.id }, (err, result) => {
+    if (err) throw err;
+    let order = result;
+    User.findOne({ username: order.person }, (err, result) => {
+      if (err) throw err;
+      /*prevents acces if a profile that is private is
+        attempting be accesed by another user, or someone who
+        isn't logged in*/
+      if (
+        (result.privacy == true && req.session.username !== result.username) ||
+        (result.privacy == true && !req.session.loggedin)
+      ) {
+        return res
+          .status(404)
+          .send("<h1>Error 404: you do not have access to this</h1>");
+      } else {
+        res.render("./pages/delivery", {
+          user: user,
+          order: order,
+          isDriver
         });
       }
     });

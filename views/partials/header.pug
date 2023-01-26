@@ -2,9 +2,14 @@ div#header
   h1 Restaurant Web App
   if user
     if user.loggedin
-      h3 #[a(href="/") Home] #[a(href="/users") Users] #[a(href="/orderform") Order Food] welcome user, #[a(href=`/users/${user.user._id}`) #{user.username}]
-      form(method='GET', action = 'http://localhost:3000/logout')
-        input(type='submit', value= "Log Out")
+      if !isDriver
+        h3 #[a(href="/") Home] #[a(href="/users") Users] #[a(href="/orderform") Order Food] welcome user, #[a(href=`/users/${user.user._id}`) #{user.username}]
+          form(method='GET', action = 'http://localhost:3000/logout')
+          input(type='submit', value= "Log Out")
+      else
+        h3 #[a(href="/") Home] welcome driver, #[a(href=`/users/${user.user._id}`) #{user.username}]        
+        form(method='GET', action = 'http://localhost:3000/logout')
+          input(type='submit', value= "Log Out")
     else
       h3 #[a(href="/") Home] #[a(href="/users") Users] #[a(href="/register") Register]
         h3 Login:
