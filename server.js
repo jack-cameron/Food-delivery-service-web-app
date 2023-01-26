@@ -1,28 +1,25 @@
-const express = require('express');
-const fs      = require('fs');
-const path    = require('path');
-const pug     = require('pug');
-const mongoose = require('mongoose');
-const session = require('express-session');
-
-//sets a new mongodb collection named 'sessiondata'
-const MongoDBStore = require('connect-mongodb-session')(session);
-const store = new MongoDBStore({
-  uri: 'mongodb://localhost:27017/a4',
-  collection: 'sessiondata'
-});
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
+const pug = require("pug");
+const session = require("express-session");
+const startdb = require("./config/db")
 
 const app = express();
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
+const cookieParser = require("cookie-parser");
 const PORT = 3000;
+startdb();
 
 //set template engine
 app.set("view engine", "pug");
 
-//connect mongoose to mongodb
-mongoose.connect('mongodb://localhost:27017/a4', {useNewUrlParser: true});
-let db = mongoose.connection;
-let User = require('./models/user');
-
+let User = require("./models/user");
+const Orders = require("./models/order");
 //logger middleware
 const logger = (req, res, next) => {
   let url = req.url;
@@ -32,34 +29,65 @@ const logger = (req, res, next) => {
 };
 
 app.use(logger);
-app.use(session({ secret: 'some secret here', store: store }));
-
+app.use(session({ secret: "some secret here", resave: false, saveUninitialized: false }));
+app.use(cookieParser());
 //use static folder
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 //body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+
+
+io.on("connection", (socket) => {
+  console.log("A client is connected: ");
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
+  })
+
+  socket.on("order.process", async (order) => {
+    console.log("New order placed: ", order);
+    // update the order_status to in_progress
+    await Orders.updateOne({ _id: order["order_id"] }, { status: "IN_PROGRESS" });
+    console.log("Order status updated");
+  });
+
+  socket.on("order.process.delivery", (order) => {
+    // console.log("Ready for delivery: ", order);
+    io.emit("order.delivery.in_progress", { order_id: order.order_id, driver_lat: order.latitude, driver_long: order.longitude });
+  });
+});
+
 // '/register' router
-let registerRouter = require('./register-router');
-app.use('/register', registerRouter);
+let registerRouter = require("./register-router");
+app.use("/register", registerRouter);
 
 // '/users' router
-let usersRouter = require('./users-router');
-app.use('/users', usersRouter);
+let usersRouter = require("./users-router");
+app.use("/users", usersRouter);
 
 // '/orders' router
-let ordersRouter = require('./orders-router');
-app.use('/orders', ordersRouter);
+let ordersRouter = require("./orders-router");
+app.use("/orders", ordersRouter);
 
-const renderIndex = pug.compileFile('views/pages/index.pug');
-const renderOrderForm = pug.compileFile('views/pages/orderform.pug');
+const renderIndex = pug.compileFile("views/pages/index.pug");
+const renderOrderForm = pug.compileFile("views/pages/orderform.pug");
 
 //route for the homepage
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   let user = req.session;
-  let data = renderIndex({user});
+  const isDriver = (user.user_type === "driver") ? true: false;
+  res.cookie("isDriver", isDriver);
+  // fetch all orders if user is driver
+  let data;
+  if (isDriver) {
+    const pendingOrders = await Orders.find({ status: "PENDING" }).exec();
+    data = renderIndex({ user, isDriver: isDriver, orders: pendingOrders });
+  } else {
+    data = renderIndex({ user, isDriver: isDriver, });
+  }
+
   res.statusCode = 200;
   res.send(data);
 });
@@ -71,7 +99,8 @@ app.get("/logout", logoutClient);
 //route for orderform
 app.get("/orderform", (req, res) => {
   let user = req.session;
-  let data = renderOrderForm({user});
+  const isDriver = (user.user_type === "driver") ? true: false;
+  let data = renderOrderForm({ user, isDriver: isDriver });
   res.statusCode = 200;
   res.send(data);
 });
@@ -81,9 +110,17 @@ app.get("/orderform/orderform.js", (req, res) => {
   res.sendFile(path.join(__dirname, "./public/orderform.js"));
 });
 
+app.get("/orders/orderProcessor.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "./public/orderProcessor.js"));
+});
+
+app.get("/orders/:id/orderProcessor.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "./public/orderProcessor.js"));
+});
+
 //logs the client in and will redirect to home page if already logged in
 function loginClient(req, res, next) {
-  if(req.session.loggedin){
+  if (req.session.loggedin) {
     res.redirect("/");
     return;
   }
@@ -91,29 +128,33 @@ function loginClient(req, res, next) {
   let password = req.body.password;
   //finds the user with username and password given through
   //post form in header.pug
-  User.find({username: req.body.name}, (err, result) => {
-    if(err) throw err;
-    if(result == false || result[0].password !== req.body.password) {
-      return res.status(400).send('<h1>Error 400: username or password is incorrect</h1>');
-    }else{
+  User.find({ username: req.body.name }, (err, result) => {
+    if (err) throw err;
+    if (result == false || result[0].password !== req.body.password) {
+      return res
+        .status(400)
+        // .redirect('/login')
+        .send("<h1>Error 400: username or password is incorrect</h1>");
+    } else {
       result = result[0];
       req.session.loggedin = true;
       req.session.username = username;
       req.session.user = result;
+      req.session.user_type = result.user_type;
       res.redirect("/");
     }
   });
 }
 
 //logs the client out
-function logoutClient(req, res, next){
-	if(req.session.loggedin){
-		req.session.loggedin = false;
-		res.redirect("/");
-	}
+function logoutClient(req, res, next) {
+  if (req.session.loggedin) {
+    req.session.loggedin = false;
+    res.redirect("/");
+  }
 }
 
 //app is listening on port 3000
-app.listen(3000, () => {
+server.listen(3000, () => {
   console.log(`app is listening on port ${PORT}...`);
 });
