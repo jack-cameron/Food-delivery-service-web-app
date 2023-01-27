@@ -60,8 +60,8 @@ socket.on("order.delivery.in_progress", (order) => {
     localStorage.setItem("driver_long", order.driver_long);
     window.location.href=`localhost:3000/orders/${order.order_id}/deliveryInfo`;
   } else {
-    localStorage.setItem("user_lat", position.coords.latitude);
-    localStorage.setItem("user_long", position.coords.longitude);
+    getUserLocation(false);
+    window.location.href=`localhost:3000/orders/${order.order_id}/deliveryInfo`;
   }
 })
 

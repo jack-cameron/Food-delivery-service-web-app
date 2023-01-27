@@ -1,29 +1,91 @@
-//- html
-//-   head
-//-     title COMP2406A4 - Order
-//-     style.
-//-       #btn-process, #btn-process-delivery {
-//-         cursor: pointer;
-//-       }
-//-   body
-//-     include ../partials/header
-//-     h3 Order Id: - #{order._id}
-//-     h3 Restaurant name: #{order.restaurantName}
-//-     h3 Order placed by: #{order.person}
-//-     h3  Order contents:
-//-     each val in order.order
-//-       p #{val.name} x(#{val.quantity})
-//-     p Subtotal: #{order.subtotal}
-//-     p Tax: #{order.tax}
-//-     p Delivery fee: #{order.fee}
-//-     p Total: #{order.total}
-//-     |
-//-     |
-//-     if !isDriver
-//-       button#btn-process(type='button') Process order
-//-     else 
-//-       button#btn-process-delivery(type='button') Process for delivery
-//-     script(src="https://cdn.socket.io/4.5.4/socket.io.min.js")
-//-     script(src='orderProcessor.js' defer type="text/javascript")
+html
+  head
+    title COMP2406A4 - Order
+    style.
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      #btn-process, #btn-process-delivery {
+        cursor: pointer;
+      }
+      #map {
+        width: 100vw;
+        height: 100vh;
+      }
+  body
+    include ../partials/header
+    h3 Delivery distance for order id:- #{order._id}
+    |
+    |
+    #map 
+    script(src="https://maps-gl.nextbillion.io/maps/v2/api/js")
+    script(src="https://cdn.socket.io/4.5.4/socket.io.min.js")
+    script(src='orderProcessor.js' defer type="text/javascript")
+    script.
+      (function () {
+        // You need to replace the apiKey with yours
+        const isDriver = document.cookie.split("=")[1];
+        let driver_lat, driver_long, user_lat, user_long;
 
+        if (!isDriver) {
+          driver_lat = localStorage.getItem("driver_lat");
+          driver_long = localStorage.getItem("driver_long");
+          user_lat = localStorage.getItem("user_lat");
+          user_long = localStorage.getItem("user_long");
+        } else {
+          driver_lat = localStorage.getItem("driver_lat");
+          driver_long = localStorage.getItem("driver_long");
+          user_lat = localStorage.getItem("driver_lat");
+          user_long = localStorage.getItem("driver_long");
+        }
+
+        nextbillion.apiKey = "7d8b75199f1d40618b70536724a7b1ae";
+        var nbmap = new nextbillion.maps.Map({
+          container: document.getElementById("map"),
+          style: "https://api.nextbillion.io/maps/streets/style.json",
+          zoom: 10,
+          center: { lat: parseInt(user_lat), lng: parseInt(user_long) }
+        });
+
+        nbmap.on("load", function () {
+          const directionsService = new nextbillion.maps.DirectionsService();
+          // request the directions api
+          directionsService
+            .route({
+              origin: { lat: parseInt(driver_lat), lng: parseInt(driver_long) },
+              waypoints: [{ lat: parseInt(user_lat), lng: parseInt(user_long) }],
+              destination: { lat: parseInt(user_lat), lng: parseInt(user_long) }
+            })
+            .then((response) => {
+              // render the result
+              nbmap.map.addSource("route", {
+                type: "geojson",
+                data: {
+                  type: "Feature",
+                  properties: {},
+                  geometry: {
+                    type: "LineString",
+                    coordinates: nextbillion.utils.polyline
+                      .decode(response.routes[0].geometry, 6)
+                      .map((c) => c.reverse())
+                  }
+                }
+              });
+              nbmap.map.addLayer({
+                id: "route",
+                type: "line",
+                source: "route",
+                layout: {
+                  "line-join": "round",
+                  "line-cap": "round"
+                },
+                paint: {
+                  "line-color": "#8D5A9E",
+                  "line-width": 8
+                }
+              });
+            });
+        });
+      })();
 //- We are to insert the map here
