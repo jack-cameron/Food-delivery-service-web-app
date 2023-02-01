@@ -6,7 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const pug = require("pug");
 const session = require("express-session");
-const startdb = require("./config/db")
+const startdb = require("./config/db");
+const cors = require("cors");
 
 const app = express();
 const server = require("http").createServer(app);
@@ -29,8 +30,15 @@ const logger = (req, res, next) => {
 };
 
 app.use(logger);
-app.use(session({ secret: "some secret here", resave: false, saveUninitialized: false }));
+app.use(
+  session({
+    secret: "some secret here",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
 app.use(cookieParser());
+app.use(cors());
 //use static folder
 app.use(express.static("public"));
 
@@ -38,24 +46,29 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-
-
 io.on("connection", (socket) => {
   console.log("A client is connected: ");
   socket.on("disconnect", () => {
     console.log("Client disconnected");
-  })
+  });
 
   socket.on("order.process", async (order) => {
     console.log("New order placed: ", order);
     // update the order_status to in_progress
-    await Orders.updateOne({ _id: order["order_id"] }, { status: "IN_PROGRESS" });
+    await Orders.updateOne(
+      { _id: order["order_id"] },
+      { status: "IN_PROGRESS" }
+    );
     console.log("Order status updated");
   });
 
   socket.on("order.process.delivery", (order) => {
     // console.log("Ready for delivery: ", order);
-    io.emit("order.delivery.in_progress", { order_id: order.order_id, driver_lat: order.latitude, driver_long: order.longitude });
+    io.emit("order.delivery.in_progress", {
+      order_id: order.order_id,
+      driver_lat: order.latitude,
+      driver_long: order.longitude,
+    });
   });
 });
 
@@ -77,7 +90,7 @@ const renderOrderForm = pug.compileFile("views/pages/orderform.pug");
 //route for the homepage
 app.get("/", async (req, res) => {
   let user = req.session;
-  const isDriver = (user.user_type === "driver") ? true: false;
+  const isDriver = user.user_type === "driver" ? true : false;
   res.cookie("isDriver", isDriver);
   // fetch all orders if user is driver
   let data;
@@ -85,7 +98,7 @@ app.get("/", async (req, res) => {
     const pendingOrders = await Orders.find({ status: "PENDING" }).exec();
     data = renderIndex({ user, isDriver: isDriver, orders: pendingOrders });
   } else {
-    data = renderIndex({ user, isDriver: isDriver, });
+    data = renderIndex({ user, isDriver: isDriver });
   }
 
   res.statusCode = 200;
@@ -99,7 +112,7 @@ app.get("/logout", logoutClient);
 //route for orderform
 app.get("/orderform", (req, res) => {
   let user = req.session;
-  const isDriver = (user.user_type === "driver") ? true: false;
+  const isDriver = user.user_type === "driver" ? true : false;
   let data = renderOrderForm({ user, isDriver: isDriver });
   res.statusCode = 200;
   res.send(data);
@@ -131,10 +144,12 @@ function loginClient(req, res, next) {
   User.find({ username: req.body.name }, (err, result) => {
     if (err) throw err;
     if (result == false || result[0].password !== req.body.password) {
-      return res
-        .status(400)
-        // .redirect('/login')
-        .send("<h1>Error 400: username or password is incorrect</h1>");
+      return (
+        res
+          .status(400)
+          // .redirect('/login')
+          .send("<h1>Error 400: username or password is incorrect</h1>")
+      );
     } else {
       result = result[0];
       req.session.loggedin = true;
